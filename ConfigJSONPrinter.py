@@ -7,7 +7,7 @@ from ConfigParserVisitor import ConfigParserVisitor
 class ConfigJSONPrinter(ConfigParserVisitor):
     def __init__(self):
         self.result = {}
-        self.current_context = [self.result]
+        self.context_stack = [self.result]
         self.current_section_name = None
 
     def visitConfig(self, ctx:ConfigParser.ConfigContext):
@@ -15,47 +15,30 @@ class ConfigJSONPrinter(ConfigParserVisitor):
         return json.dumps(self.result, indent=2)
 
     def visitSection(self, ctx:ConfigParser.SectionContext):
-        section_name = ctx.IDENTIFIER().getText()
-        self.current_section_name = section_name
-        new_section = {}
-        if isinstance(self.current_context[-1], list):
-            self.current_context[-1].append(new_section)
-        else:
-            self.current_context[-1][section_name] = new_section
-        self.current_context.append(new_section)
+        self.current_section_name = ctx.IDENTIFIER().getText()
         self.visitChildren(ctx)
-        self.current_context.pop()
         self.current_section_name = None
 
     def visitSectionContent(self, ctx:ConfigParser.SectionContentContext):
         return self.visitChildren(ctx)
 
     def visitSectionList(self, ctx:ConfigParser.SectionListContext):
-        if self.current_section_name is None:
-            raise ValueError("SectionList encountered without a current section name")
-        section_list = []
-        current_dict = self.current_context[-1]
-        if self.current_section_name in current_dict:
-            if isinstance(current_dict[self.current_section_name], list):
-                section_list = current_dict[self.current_section_name]
-            else:
-                section_list = [current_dict[self.current_section_name]]
-                current_dict[self.current_section_name] = section_list
-        else:
-            current_dict[self.current_section_name] = section_list
-        self.current_context.append(section_list)
+        current_context = self.context_stack[-1]
+        if self.current_section_name not in current_context:
+            current_context[self.current_section_name] = []
+        self.context_stack.append(current_context[self.current_section_name])
         self.visitChildren(ctx)
-        self.current_context.pop()
+        self.context_stack.pop()
 
     def visitSectionSingle(self, ctx:ConfigParser.SectionSingleContext):
-        if isinstance(self.current_context[-1], list):
-            new_section = {}
-            self.current_context[-1].append(new_section)
-            self.current_context.append(new_section)
-            self.visitChildren(ctx)
-            self.current_context.pop()
+        new_section = {}
+        if isinstance(self.context_stack[-1], list):
+            self.context_stack[-1].append(new_section)
         else:
-            self.visitChildren(ctx)
+            self.context_stack[-1][self.current_section_name] = new_section
+        self.context_stack.append(new_section)
+        self.visitChildren(ctx)
+        self.context_stack.pop()
 
     def visitContent(self, ctx:ConfigParser.ContentContext):
         return self.visitChildren(ctx)
@@ -63,12 +46,12 @@ class ConfigJSONPrinter(ConfigParserVisitor):
     def visitVariable(self, ctx:ConfigParser.VariableContext):
         name = ctx.IDENTIFIER().getText()
         value = self.visit(ctx.value())
-        self.current_context[-1][name] = value
+        self.context_stack[-1][name] = value
 
     def visitVariableList(self, ctx:ConfigParser.VariableListContext):
         name = ctx.IDENTIFIER().getText()
         values = [self.visit(value) for value in ctx.value()]
-        self.current_context[-1][name] = values
+        self.context_stack[-1][name] = values
 
     def visitValue(self, ctx:ConfigParser.ValueContext):
         text = ctx.getText()
@@ -84,4 +67,3 @@ class ConfigJSONPrinter(ConfigParserVisitor):
             return text
         else:
             return text
-
