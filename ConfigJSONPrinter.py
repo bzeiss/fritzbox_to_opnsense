@@ -1,4 +1,5 @@
 import json
+import re
 from antlr4 import *
 from ConfigParser import ConfigParser
 from ConfigParserVisitor import ConfigParserVisitor
@@ -52,6 +53,10 @@ class ConfigJSONPrinter(ConfigParserVisitor):
             return text.lower() == 'yes'
         elif ctx.TIME_WEEKS() or ctx.TIME_DAYS() or ctx.TIME_HOURS() or ctx.TIME_MINUTES() or ctx.TIME_SECONDS():
             # Return as string for time values
+            return text
+        elif ctx.STRING():
+            text = text[1:-1]  # Remove outer quotes
+            text = re.sub(r'\\(.)', r'\1', text)  # Unescape all escaped characters
             return text
         else:
             # For other types (IP addresses, MAC addresses, identifiers), return as is
