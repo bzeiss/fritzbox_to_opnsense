@@ -4,6 +4,7 @@ import json
 import argparse
 import requests
 import sys
+import re
 import warnings
 from requests.auth import HTTPBasicAuth
 import jsonpath_ng.ext as jsonpath_ng
@@ -73,6 +74,43 @@ def add_dhcpv4_subnet(config, subnet_info):
     endpoint = 'kea/dhcpv4/addSubnet'
     return make_request(config, 'POST', endpoint, data=subnet_info)
 
+def sanitize_hostname(hostname):
+    """
+    Converts the hostname to lowercase and sanitizes it to ensure it contains
+    only valid characters for a DNS name.
+
+    Valid characters are:
+    - Lowercase letters (a-z)
+    - Digits (0-9)
+    - Hyphens (-)
+    
+    The hostname cannot start or end with a hyphen, and cannot be longer than 63 characters.
+    If the sanitized hostname is empty, it returns 'host'.
+
+    :param hostname: The original hostname string
+    :return: Sanitized lowercase hostname
+    """
+    # Convert to lowercase
+    hostname = hostname.lower()
+
+    # Replace invalid characters with hyphens
+    sanitized = re.sub(r'[^a-z0-9-]', '-', hostname)
+
+    # Remove leading and trailing hyphens
+    sanitized = sanitized.strip('-')
+
+    # Replace multiple consecutive hyphens with a single hyphen
+    sanitized = re.sub(r'-+', '-', sanitized)
+
+    # Truncate to 63 characters if necessary
+    sanitized = sanitized[:63]
+
+    # If the sanitized hostname is empty, use 'host'
+    if not sanitized:
+        sanitized = 'host'
+
+    return sanitized
+
 def map_ar7_ethinterface_to_kea_subnet_info(input_data):
     # Calculate network address and CIDR notation
     ip_parts = input_data['ipaddr'].split('.')
@@ -135,8 +173,8 @@ def convert_to_opnsense_reservation(input_data, subnet_uuid):
             "subnet": subnet_uuid,
             "ip_address": input_data["ip"],
             "hw_address": input_data["mac"],
-            "hostname": input_data["neighbour_name"],
-            "description": f"Reservation for {input_data['neighbour_name']}"
+            "hostname": sanitize_hostname(input_data["neighbour_name"]),
+            "description": f"Reservation for {sanitize_hostname(input_data['neighbour_name'])}"
         }
     }
 
