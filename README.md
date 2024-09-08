@@ -9,7 +9,7 @@ Die ar7.cfg liegt in einem eigenen Configdatei-Format vor. Damit dies einfach we
 
 Dies sind keine Skripte, die nicht von Anfängern verwendet werden sollten, sondern von Personen, die wissen, was sie tun. Sie stellen keine schlüsselfertige Lösung für eine Migration dar, sondern sind das Resultat dessen, was ich persönlich für meine Migration benutzt habe und sind eher als Ansatzpunkt bzw. Migrationstoolbox zu verstehen. Netzwerkkonfigurationen und die genutzten Netzwerkfunktionalitäten unterscheiden sich je nach Netzwerk. Es kann sein, dass nicht alle Inhalte migriert werden. Die Skripte sind bewusst in Ihrer Struktur technisch einfach gehalten, so dass diese bei Bedarf für die eigene Migration einfach angepasst werden können ohne sich viel in eine Projektstruktur einzuarbeiten.
 
-Ich übernehme keine Verantwortung und Haftung für Schäden, die durch die unsachgemäße Nutzung dieser Skripte verursacht werden.
+Ich übernehme keine Verantwortung und Haftung für Schäden, die durch die unsachgemäße Nutzung dieser Skripte verursacht werden. Ich bearbeite keine Feature Requests oder Änderungswünsche. **Dies ist und wird kein schlüsselfertiges Migrationstool!**
 
 ## Dependencies
 
