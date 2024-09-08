@@ -110,6 +110,9 @@ Mit dem PPPoE Username und PPPoE Passwort muss nun über das OPNsense Web Intefa
 
 In Interaces->WAN werden folgende Anpassungen vorgenommen:
 
+1) Unter der Überschrift "Basic configuration"
+   - Enable Interface: true
+   - Prevent interface removal: true
 1) Unter der Überschrift "Generic configuration":
    - IPv4 Configuration Type: PPPoE
    - MTU: 1500
