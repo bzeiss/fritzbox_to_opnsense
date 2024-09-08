@@ -92,3 +92,35 @@ Das Skript clean_opnsense_kea_dhcpv4.py kann DHCPv4 Subnetze und Reservierungen 
 ```
 /bin/python3 clean_opnsense_kea_dhcpv4.py
 ```
+
+## OPNsense WAN Interface für Telekom PPPoE konfigurieren
+Leider deckt die OPNsense API das die Interface Konfiguration noch nicht vollständig ab bzw. setzt eine andere Vorgehensweise als die Nutzung der API voraus, weshalb wir hier teilweise per Skript und teilweise von Hand arbeiten müssen.
+
+Vorausgesetzt wird, dass ein WAN port bereits existiert. Dieser wird normalerweise mit der Installation von OPNsense eingerichtet. Der Name von diesem muss als zweiter Kommandozeilenparameter mit übergeben werden.
+
+In den Skript passieren zwei Dinge:
+- Es wird ein VLAN 7 Interface erstellt und an das WAN interface gehangen
+- Der PPPOE Username und das PPPOE Passwort werden ausgegeben.
+
+```
+/bin/python3 ar7_telekom_to_opnsense_pppoe.py ../tests/fb/ar7.cfg WAN
+```
+
+Mit dem PPPoE Username und PPPoE Passwort muss nun über das OPNsense Web Inteface manuell eine Umkonfiguration vorgenommen werden.
+
+In Interaces->WAN werden folgende Anpassungen vorgenommen:
+
+1) Unter der Überschrift "Generic configuration":
+   - IPv4 Configuration Type: PPPoE
+   - MTU: 1500
+2) Unter der Überschrift "PPPoE configuration"
+   - Username: [auf den PPPoE Username aus dem Skript setzen]
+   - Password: [auf das PPPoE Passwort aus dem Skript setzen]
+3) In DHCPv6 client configuration:
+   - User IPv4 connectivity: true
+   - Prefix Delegation size: 56
+   - Request prefix only: true
+4) Save
+5) Apply Changes
+
+Nach dem "Apply Changes" sollte sich das WAN interface in das device "pppoeX" umgewandelt haben.
