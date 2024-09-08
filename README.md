@@ -83,7 +83,11 @@ Bei Erfolg, sollten im Anschluss in OPNsense unter Services->Kea DHCP->Kea DHCPv
 Sind in den reservations hostname oder hostnamen in den Descriptions leer, so ist in der FritzBox der neighbour name nicht gesetzt. Die Liste ist daher vermutlich sinnvollerweise nachträglich zu prüfen in Hinblick auf z.B. folgende Punkte:
 
 - Hostname leer?
+- Prüfung auf Doppeleinträge. Die FritzBox Liste von statischen Mappings räumt sich nicht selbst auf und wächst mit der Zeit etwas wild. Bei mir waren einige IP Adressen sogar für unterschiedliche MAC Adressen doppelt vergeben.
 - Soll der host ggf. doch nicht migriert werden?
+- Aktivierung der KEA DHCP Interfaces
+- KEA DHCP gestartet? Wenn er nicht hochfährt, Logfiles vom DHCP lesen und Problem finden
+- Wenn Unbound DHCP benutzt wird und die DHCP Einträge als DNS Namen verwendet werden sollen: Services->Unbound DNS->Register DHCP Static Mappings => true
 
 ## OPNsense DHCP Konfiguration zurücksetzen
 
