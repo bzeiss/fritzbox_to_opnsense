@@ -1,13 +1,13 @@
 # fritzbox_to_opnsense
-Tools, die bei dem Umstieg von einer AVM Fritzbox nach OPNSense unterstüzen.
+$\color{red}{\Huge{\textbf{Diese Tools sind Work in Progress!!}}}$
 
-**Diese Tools sind Work in Progress!!**
+Tools, die bei dem Umstieg von einer AVM Fritzbox nach OPNSense unterstüzen.
 
 Die Software setzt auf die FritzBox Tools (https://www.mengelke.de/Projekte/FritzBox-Tools) von Michael Engelke auf. Mit Hilfe dieser Tools lässt sich eine ar7.cfg Datei von der FritzBox auslesen, in der viele Informationen drin stehen, die für eine Migration nach OPNsense erforderlich sind.
 
 Die ar7.cfg liegt in einem eigenen Configdatei-Format vor. Damit dies einfach weiterzuverarbeiten ist, existiert für dieses Format ein ANTLR4 Lexer und Parser. Aufbauend auf diesen, existieren in diesem Repository diverse Skripte, die bei einer Migration unterstützen können.
 
-Dies sind keine Skripte, die nicht von Anfängern verwendet werden sollten. Sie stellen keine schlüsselfertige Lösung für eine Migration dar, sondern sind das Resultat dessen, was ich persönlich für meine Migration benutzt habe und sind eher als Ansatzpunkt bzw. Migrationstoolbox zu verstehen. Netzwerkkonfigurationen und die genutzten Netzwerkfunktionalitäten unterscheiden sich je nach Netzwerk. Es kann sein, dass nicht alle Inhalte migriert werden. Die Skripte sind bewusst in Ihrer Struktur technisch einfach gehalten, so dass diese bei Bedarf für die eigene Migration angepasst werden können.
+Dies sind keine Skripte, die nicht von Anfängern verwendet werden sollten, sondern von Personen, die wissen, was sie tun. Sie stellen keine schlüsselfertige Lösung für eine Migration dar, sondern sind das Resultat dessen, was ich persönlich für meine Migration benutzt habe und sind eher als Ansatzpunkt bzw. Migrationstoolbox zu verstehen. Netzwerkkonfigurationen und die genutzten Netzwerkfunktionalitäten unterscheiden sich je nach Netzwerk. Es kann sein, dass nicht alle Inhalte migriert werden. Die Skripte sind bewusst in Ihrer Struktur technisch einfach gehalten, so dass diese bei Bedarf für die eigene Migration einfach angepasst werden können ohne sich viel in eine Projektstruktur einzuarbeiten.
 
 Ich übernehme keine Verantwortung und Haftung für Schäden, die durch die unsachgemäße Nutzung dieser Skripte verursacht werden.
 
