@@ -70,14 +70,13 @@ def create_wireguard_server(config, vpn_config, global_vpn_config):
         "server": {
             "enabled": "1" if vpn_config["enabled"] == "yes" else "0",
             "name": vpn_config["name"],
-            "pubkey": vpn_config["wg_public_key"],
+            "pubkey": global_vpn_config["wg_public_key"],  
             "privkey": global_vpn_config["wg_private_key"],  
             "port": global_vpn_config["wg_listen_port"],
-            "tunneladdress": vpn_config["wg_allowed_ips"],
+            "tunneladdress": "",
             "dns": vpn_config["wg_dnsserver"],
 #            "mtu": "1420",  # Default WireGuard MTU, adjust if needed
             "peers": "",  # This will be set when we add the client
-#            "disableroutes": "1" if vpn_config["wg_fulltunnel"] == "no" else "0",
             "disableroutes": "0",
             "gateway": "",  # Set this if needed for routing
         }
@@ -172,9 +171,20 @@ def cleanup_wireguard_configs(config):
     print("")
     return result
 
+def add_firewall_rule(config, rule_data):
+    response = make_request(config, 'POST', 'firewall/filter/addRule', rule_data)
+
+    return response
+
+def apply_firewall_rules(config):
+    response = make_request(config, 'POST', 'firewall/filter/apply')
+
+    return response
+
 def main(argv):
     parser = argparse.ArgumentParser(description="OPNsense wireguard migration tool")
-    parser.add_argument("--clean", help="specifies whether to clean up all instances and peer entries before adding new ones", action='store_true')
+    parser.add_argument("--clean", help="clean up all instances and peer entries before adding new ones", action='store_true')
+    parser.add_argument("--addrules", help="add a firewall rule to allow wireguard on the WAN port and a rule to allow vpn users to access the internal network", action='store_true')
     parser.add_argument("--config", default="config.json", help="Path to the config file")
     parser.add_argument("vpncfg", metavar="vpn.cfg", help="Path to the vpn.cfg file")
     args = parser.parse_args()
@@ -229,6 +239,60 @@ def main(argv):
         peers.append(client_uuid)
 
     print("")
+
+    if args.addrules is not None:
+        print("Allowing WAN access to wireguard port on firewall")
+        wan_rule_data = {
+            "rule": {
+                "enabled": "1",
+                "action": "pass",
+                "quick": "1",
+                "interface": "wan",
+                "direction": "in",
+                "ipprotocol": "inet",
+                "protocol": "UDP",
+                "source_net": "any",
+                "destination_net": "(self)",
+                "destination_port": "53172",
+                "description": "Allow IPv4 UDP, Port 53172 (Wireguard) to firewall"
+            }
+        }
+
+        response = add_firewall_rule(config, wan_rule_data)
+        print(response)
+        wan_rule_data['rule']['ipprotocol'] = "inet6"
+        wan_rule_data['rule']['description'] = "Allow IPv6 UDP, Port 53172 (Wireguard) to firewall"
+        response = add_firewall_rule(config, wan_rule_data)
+        print(response)
+
+        print("")
+        print("Allowing Wireguard VPN access to all internal networks (Adjust if necessary!!!)")
+
+        wireguard_rule_data = {
+            "rule": {
+                "enabled": "1",
+                "action": "pass",
+                "quick": "1",
+                "interface": "wireguard",
+                "direction": "in",
+                "ipprotocol": "inet",
+                "protocol": "UDP",
+                "source_net": "any",
+                "destination_net": "any",
+                "destination_port": "",
+                "description": "Allow IPv4 access to all internal networks from VPN"
+            }
+        }
+
+        response = add_firewall_rule(config, wireguard_rule_data)
+        print(response)
+
+        wireguard_rule_data['ipprotocol'] = "inet6"
+        wireguard_rule_data['description'] = "Allow IPv6 access to all internal networks from VPN"
+        response = add_firewall_rule(config, wireguard_rule_data)
+        print(response)
+
+        apply_firewall_rules(config)
 
     enable_wireguard_service(config)
 

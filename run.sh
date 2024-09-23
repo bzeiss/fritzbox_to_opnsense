@@ -9,4 +9,4 @@ clear
 #/bin/python3 ar7_dhcp4_to_opnsense_kea.py ../tests/fb/ar7.cfg 2>&1
 #/bin/python3 clean_opnsense_kea_dhcpv4.py 2>&1
 #/bin/python3 ar7_telekom_to_opnsense_pppoe.py ../tests/fb/ar7.cfg WAN
-/bin/python3 vpn_wireguard_to_opnsense.py --clean ../tests/fb/vpn.cfg
+/bin/python3 vpn_wireguard_to_opnsense.py --clean --addrules ../tests/fb/vpn.cfg
