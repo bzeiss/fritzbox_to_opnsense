@@ -253,15 +253,15 @@ def main(argv):
                 "protocol": "UDP",
                 "source_net": "any",
                 "destination_net": "(self)",
-                "destination_port": "53172",
-                "description": "Allow IPv4 UDP, Port 53172 (Wireguard) to firewall"
+                "destination_port": str(global_vpn_config["wg_listen_port"]),
+                "description": "Allow IPv4 UDP, Port " + str(global_vpn_config["wg_listen_port"]) + " (Wireguard) to firewall"
             }
         }
 
         response = add_firewall_rule(config, wan_rule_data)
         print(response)
         wan_rule_data['rule']['ipprotocol'] = "inet6"
-        wan_rule_data['rule']['description'] = "Allow IPv6 UDP, Port 53172 (Wireguard) to firewall"
+        wan_rule_data['rule']['description'] = "Allow IPv6 UDP, Port " + str(global_vpn_config["wg_listen_port"]) + " (Wireguard) to firewall"
         response = add_firewall_rule(config, wan_rule_data)
         print(response)
 
@@ -292,6 +292,8 @@ def main(argv):
         response = add_firewall_rule(config, wireguard_rule_data)
         print(response)
 
+        print("")
+        print("Applying firewall rules")
         apply_firewall_rules(config)
 
     enable_wireguard_service(config)
