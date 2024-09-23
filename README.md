@@ -1,5 +1,4 @@
 # fritzbox_to_opnsense
-$\color{red}{\Huge{\textbf{Diese Tools sind Work in Progress!!}}}$
 
 Tools, die bei dem Umstieg von einer AVM Fritzbox nach OPNSense unterstüzen.
 
