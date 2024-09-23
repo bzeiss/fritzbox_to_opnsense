@@ -23,7 +23,7 @@ Wie diese installiert werden unterscheidet sich je nach Betriebssystem. Z.B. bei
 dnf install antlr4 antlr4-runtime python3-antlr4-runtime python3 php-cli
 ```
 
-## ar7.cfg mit FritzBox-Tools extrahieren
+## ar7.cfg und vpn.cfg mit FritzBox-Tools extrahieren
 
 Die Software setzt auf die FritzBox Tools (https://www.mengelke.de/Projekte/FritzBox-Tools) von Michael Engelke auf. Mit diesen kann man die Konfigurationsdateien extrahieren und decrypten. Dies ist mit dem folgenden Kommando möglich:
 
@@ -37,6 +37,8 @@ In dem Zielpfad sollte nun eine entschlüsselte ar7.cfg liegen, die für die wei
 - Provider Zugangsdaten
 - VPN Konfigurationen
 - etc.
+
+Ebenso liegt dort eine vpn.cfg. Dort sind VPN Konfigurationen der FritzBox enthalten.
 
 ## ANTLR 4 Lexer und Parser generieren
 
@@ -131,3 +133,17 @@ In Interaces->WAN werden folgende Anpassungen vorgenommen:
 5) Apply Changes
 
 Nach dem "Apply Changes" sollte sich das WAN interface in das device "pppoeX" umgewandelt haben.
+
+## FritzBox Wireguard Konfigurationen/Profile migrieren
+
+Die Wireguard VPN Konfigurationen befinden sich nicht in der ar7.cfg, sondern in der vpn.cfg.
+
+Der Aufruf erfolgt mit
+
+```
+/bin/python3 vpn_wireguard_to_opnsense.py --clean --addrules ../tests/fb/vpn.cfg
+```
+Die beiden Parameter --clean und -addrules sind optional. --clean löscht alle wireguard instance und peers bevor die neuen eingerichtet werden. --addrules erzeugt zwei Regeln für das WAN interface, um den Zugriff auf den Wireguard Port (bei der FritBox standardmäßig offenbar 53172 statt 51820) auf der OPNSense Firewall zuzulassen. Auf der wireguard group werden eingehende Pakete auf alle Netze zugelassen (ebenso IPv4 und IPv6). Insbesondere die letztere Regel ist ggf. nicht immer so gewünscht und zu offen. Es sollte daher sorgfältig geprüft werden, um diese Regel weiter eingeschränkt werden muss. Die Firewall Regeln sind nach der automatischen Anlage im Bereich Firewall->Automation zu finden und können auch nur dort weiter editiert oder entfernt werden. Ggf. muss in der Automation Konfiguration noch auf Apply geklickt werden, die apply rules scheinen nicht immer zuverlässig zu gehen.
+
+Ebenso zu beachten ist, dass ggf. Dynamic DNS notwendig ist, damit Peers auf die OPNSense drauf kommen. Diese Konfiguration ist durch die Skripte derzeit nicht abgedeckt.
+
