@@ -139,6 +139,8 @@ Nach dem "Apply Changes" sollte sich das WAN interface in das device "pppoeX" um
 
 ## FritzBox Wireguard Konfigurationen/Profile migrieren
 
+** Dies funktioniert noch nicht ganz korrekt! **
+
 Die Wireguard VPN Konfigurationen befinden sich nicht in der ar7.cfg, sondern in der vpn.cfg.
 
 Der Aufruf erfolgt mit
