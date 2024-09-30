@@ -8,12 +8,23 @@ import re
 import warnings
 import secrets
 import base64
-from requests.auth import HTTPBasicAuth
+import ipaddress
 import jmespath
+from requests.auth import HTTPBasicAuth
 from antlr4 import *
 from ConfigLexer import ConfigLexer
 from ConfigParser import ConfigParser
 from ConfigJSONPrinter import ConfigJSONPrinter
+
+tunnel_network = "10.10.10.1/24"
+
+def next_ip(ip_network):
+    ip = ipaddress.ip_interface(ip_network)
+    next_ip = ip.ip + 1
+    if next_ip not in ip.network:
+        next_ip = ip.network.network_address + 1
+    
+    return f"{next_ip}/32"
 
 def load_config(config_file):
     if config_file is None:
@@ -73,9 +84,9 @@ def create_wireguard_server(config, vpn_config, global_vpn_config):
             "pubkey": global_vpn_config["wg_public_key"],  
             "privkey": global_vpn_config["wg_private_key"],  
             "port": global_vpn_config["wg_listen_port"],
-            "tunneladdress": "",
+            "tunneladdress": tunnel_network,
             "dns": vpn_config["wg_dnsserver"],
-#            "mtu": "1420",  # Default WireGuard MTU, adjust if needed
+            "mtu": "1412", # setup for dsl/vdsl, should be 1420 otherwise
             "peers": "",  # This will be set when we add the client
             "disableroutes": "0",
             "gateway": "",  # Set this if needed for routing
@@ -85,14 +96,16 @@ def create_wireguard_server(config, vpn_config, global_vpn_config):
     response = make_request(config, 'POST', 'wireguard/server/addServer', server_data)
     return response
 
-def create_wireguard_client(config, vpn_config, global_vpn_config, server_uuid):
+def create_wireguard_client(config, vpn_config, global_vpn_config, server_uuid, address):
     client_data = {
         "client": {
             "enabled": "1" if vpn_config["enabled"] == "yes" else "0",
             "name": f"{vpn_config['name']}_peer",
             "pubkey": vpn_config["wg_public_key"],
             "psk": vpn_config["wg_preshared_key"],
-            "tunneladdress": vpn_config["wg_allowed_ips"],
+#            "mtu": "1412", # setup for dsl/vdsl, should be 1420 otherwise
+            "tunneladdress": address,
+#            "tunneladdress": vpn_config["wg_allowed_ips"],
             "serveraddress": vpn_config["wg_dyndns"],
             "serverport": global_vpn_config["wg_listen_port"],
             "keepalive": str(vpn_config["wg_persistent_keepalive"]),
@@ -216,13 +229,14 @@ def main(argv):
     # create instance and client configurations from the site to site fritzbox vpn configs
 
     print(str(len(site_to_site_matches)) + " site to site vpn configs found")
+    next_address = tunnel_network
     for site_to_site_config in site_to_site_matches:
 #        print(json.dumps(match, indent=2))
 
         result = create_wireguard_server(config, site_to_site_config, global_vpn_config)
         print(result)
         server_uuid = result['uuid']
-        result = create_wireguard_client(config, site_to_site_config, global_vpn_config, server_uuid)
+        result = create_wireguard_client(config, site_to_site_config, global_vpn_config, server_uuid, site_to_site_config["wg_allowed_ips"])
         print(result)
         client_uuid = result['uuid']
         peers.append(client_uuid)
@@ -233,7 +247,8 @@ def main(argv):
     print(str(len(client_matches)) + " client vpn configs found")
     for client_config in client_matches:
 #        print(json.dumps(client_config, indent=2))
-        result = create_wireguard_client(config, client_config, global_vpn_config, server_uuid)
+        next_address = next_ip(next_address)
+        result = create_wireguard_client(config, client_config, global_vpn_config, server_uuid, next_address)
         print(result)
         client_uuid = result['uuid']
         peers.append(client_uuid)
@@ -252,7 +267,8 @@ def main(argv):
                 "ipprotocol": "inet",
                 "protocol": "UDP",
                 "source_net": "any",
-                "destination_net": "(self)",
+#                "destination_net": "(self)", ## this firewall
+                "destination_net": "wanip", ## this firewall
                 "destination_port": str(global_vpn_config["wg_listen_port"]),
                 "description": "Allow IPv4 UDP, Port " + str(global_vpn_config["wg_listen_port"]) + " (Wireguard) to firewall"
             }
@@ -287,8 +303,8 @@ def main(argv):
         response = add_firewall_rule(config, wireguard_rule_data)
         print(response)
 
-        wireguard_rule_data['ipprotocol'] = "inet6"
-        wireguard_rule_data['description'] = "Allow IPv6 access to all internal networks from VPN"
+        wireguard_rule_data['rule']['ipprotocol'] = "inet6"
+        wireguard_rule_data['rule']['description'] = "Allow IPv6 access to all internal networks from VPN"
         response = add_firewall_rule(config, wireguard_rule_data)
         print(response)
 

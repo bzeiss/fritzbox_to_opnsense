@@ -110,7 +110,7 @@ def main():
         
     # Search for DHCP subnets and delete each subnet
     subnets = search_dhcpv4_subnets(config)
-    for subnet in subnets["rows"]:       
+    for subnet in subnets["rows"]:
         result = delete_dhcpv4_subnet(config, subnet["uuid"])
 #        print(json.dumps(subnet, indent=2))
         print(result)

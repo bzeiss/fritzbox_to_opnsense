@@ -171,10 +171,10 @@ def convert_to_opnsense_reservation(input_data, subnet_uuid):
     opnsense_reservation = {
         "reservation": {
             "subnet": subnet_uuid,
-            "ip_address": input_data["ip"],
-            "hw_address": input_data["mac"],
-            "hostname": sanitize_hostname(input_data["neighbour_name"]),
-            "description": f"Reservation for {sanitize_hostname(input_data['neighbour_name'])}"
+            "ip_address": input_data["ip"].lower().strip(),
+            "hw_address": input_data["mac"].lower().strip(),
+            "hostname": sanitize_hostname(input_data["neighbour_name"]).lower().strip(),
+            "description": f"Reservation for {sanitize_hostname(input_data['neighbour_name']).lower().strip()}"
         }
     }
 
@@ -230,10 +230,18 @@ def main():
     # print("\nCurrent DHCP Subnets:")
     # print(json.dumps(subnets, indent=2))
 
+    migrated_addresses = []
+
     print("Migrating reservations")
     for match in landevices_matches:
         landevice = match.value
 #        print(json.dumps(landevice, indent=2))
+        if (landevice["ip"] in migrated_addresses):
+            print("CONFLICT: lan device could not be migrated. A lan device with the same ip address has already been imported. LAN device: " + str(landevice))
+            continue
+
+        migrated_addresses.append(landevice["ip"])
+        
         reservation = convert_to_opnsense_reservation(landevice, subnet_uuids["eth0"])
         result = add_kea_dhcpv4_reservation(config, reservation)
         #print(json.dumps(reservation, indent=2))
