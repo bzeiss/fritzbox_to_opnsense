@@ -12,6 +12,7 @@ Ich übernehme keine Verantwortung und Haftung für Schäden, die durch die unsa
 
 ## Bekannte TODOs
 - [x] Config Parser für IPv6 überarbeiten. Es werden noch nicht alle validen Formate akzeptiert.
+- [ ] Port Forwardings migrieren
 - [ ] DynDNS migrieren?
 
 ## Dependencies
@@ -124,7 +125,7 @@ In Interaces->WAN werden folgende Anpassungen vorgenommen:
    - Prevent interface removal: true
 1) Unter der Überschrift "Generic configuration":
    - IPv4 Configuration Type: PPPoE
-   - MTU: 1500
+   - MTU: 1492 (für DSL/VDSL, sonst wahrscheinlich 1500)
 2) Unter der Überschrift "PPPoE configuration"
    - Username: [auf den PPPoE Username aus dem Skript setzen]
    - Password: [auf das PPPoE Passwort aus dem Skript setzen]
@@ -139,8 +140,6 @@ Nach dem "Apply Changes" sollte sich das WAN interface in das device "pppoeX" um
 
 ## FritzBox Wireguard Konfigurationen/Profile migrieren
 
-** Dies funktioniert noch nicht ganz korrekt! **
-
 Die Wireguard VPN Konfigurationen befinden sich nicht in der ar7.cfg, sondern in der vpn.cfg.
 
 Der Aufruf erfolgt mit
@@ -148,7 +147,15 @@ Der Aufruf erfolgt mit
 ```
 /bin/python3 vpn_wireguard_to_opnsense.py --clean --addrules ../tests/fb/vpn.cfg
 ```
-Die beiden Parameter --clean und -addrules sind optional. --clean löscht alle wireguard instance und peers bevor die neuen eingerichtet werden. --addrules erzeugt zwei Regeln für das WAN interface, um den Zugriff auf den Wireguard Port (bei der FritBox standardmäßig offenbar 53172 statt 51820) auf der OPNSense Firewall zuzulassen. Auf der wireguard group werden eingehende Pakete auf alle Netze zugelassen (ebenso IPv4 und IPv6). Insbesondere die letztere Regel ist ggf. nicht immer so gewünscht und zu offen. Es sollte daher sorgfältig geprüft werden, um diese Regel weiter eingeschränkt werden muss. Die Firewall Regeln sind nach der automatischen Anlage im Bereich Firewall->Automation zu finden und können auch nur dort weiter editiert oder entfernt werden. Ggf. muss in der Automation Konfiguration noch auf Apply geklickt werden, die apply rules scheinen nicht immer zuverlässig zu gehen.
+Die beiden Parameter --clean und -addrules sind optional. --clean löscht alle wireguard instance und peers bevor die neuen eingerichtet werden. --addrules erzeugt zwei Regeln für das WAN interface, um den Zugriff auf den Wireguard Port (bei der FritBox standardmäßig nicht auf 51820) auf der OPNSense Firewall zuzulassen. Auf der wireguard group werden eingehende Pakete auf alle Netze zugelassen (ebenso IPv4 und IPv6). Insbesondere die letztere Regel ist ggf. nicht immer so gewünscht und zu offen. Es sollte daher sorgfältig geprüft werden, um diese Regel weiter eingeschränkt werden muss. Die Firewall Regeln sind nach der automatischen Anlage im Bereich Firewall->Automation zu finden und können auch nur dort weiter editiert oder entfernt werden. Ggf. muss in der Automation Konfiguration noch auf Apply geklickt werden, die apply rules scheinen nicht immer zuverlässig zu gehen.
+
+Ich empfehle unbedingt nur die Tutorials von der offiziellen OPNsense Anleitung als Referenz zu benutzen (Site-to-Site: https://docs.opnsense.org/manual/how-tos/wireguard-s2s.html, Road Warrior Setup: https://docs.opnsense.org/manual/how-tos/wireguard-client.html). Ich habe selbst sehr viel Zeit darauf verwenden müssen Probleme mit meiner VDSL Verbindung zu analysieren, die v.a. dadurch entstanden sind, dass andere Anleitungen einzelne Schritte übersprungen sind. Herauszuheben hierbei:
+1. Man sollte das Wireguard Interface hinzufügen. Man kann zwar auch mit der Wireguard Group arbeiten (diese arbeitet über alle Wireguard Instanzen), die Konfiguration pro Interface ist aber vorteilhaft und feingranularer. Insbesondere lässt sich danach auf dem Wireguard Interface MTU setzen. Bei einer VDSL Verbindung sollte der MTU Wert für das Wireguard Interface meinen Informationen nach auf 1412 stehen. Insbesondere, wenn man auch das Internet über das VPN tunneln möchte, wird über das Interface automatisch eine NAT Outbound Regel angelegt, die sonst fehlen würde und manuell eingerichtet werden müsste.
+2. In der Wireguard Instanz wird durch die Skripte auch automatsch ein MTU Wert 1412 gesetzt (sichtbar, wenn man im Web Interface den Advanced Mode einstellt).
+3. In vielen Installationsanleitungen wird der Schritt des MSS Clampings übersprungen. In meinem Setup war es so, dass ich bei einer stehenden Wireguard Verbindung zwar pingen konnte, aber nicht auf Webseiten in meinem Netz zugreifen konnte. Dieses Problem verschwand, nachdem ich in Firewall->Settings->Normalization ein Setting für das Interface "WireGuard (Group)" eingerichtet habe, wo ich unter "Normalizations" Max mss auf 1352 gesetzt habe (für IPv4 und IPv6).
+4. Zu beachten: die MTU Settings und MSS Clampings sind ggf. anders setzen, wenn man nicht mit DSL/VDSL, sondern mit Kabel, Glasfaser, etc. arbeitet.
+
+Weiterhin ist anzumerken, dass die Migration nicht ganz ohne manuelle Eingriffe bei den Road Warrior Setups möglich ist. Die Tunnel Interface Konfiguration der FritzBox ist nicht ganz nachvollziehbar und scheint sich nicht ganz am Standard zu orientieren. Die Skripte funktionieren so, dass ein Tunnel Interface 10.10.10.1/24 für die Wireguard-Instanz eingerichtet wird und die Road Warrior Setups danach aufsteigend Adressen 10.10.10.2, 10.10.10.3 etc. erhalten. Durch diese neu vergebenen Adressen müssen die Adressen in bereits konfigurierten Wireguard Clients angepasst werden. Diese stehen mit einer /32-er Adresse im eigentlichen Netzwerk, nicht im Tunnel-Netzwerk in den Client Konfigurationen. Diese müssen so gesetzt werden wie in der Peers-Übersicht unter Allowed IPs die Road Warrior Peers stehen (enden auf /32). Ich habe probiert das ganze so zu bauen wie es in der Fritzbox war, dann hat das Routing allerdings wiederum nicht korrekt funktioniert. Ich denke der nun verfolgte Ansatz ist eine Kompromiss, der für mich zumindest funktioniert hat. Die site-to-site Verbindungen scheinen ohne weitere Anpassungen zu funktionieren.
 
 Ebenso zu beachten ist, dass ggf. Dynamic DNS notwendig ist, damit Peers auf die OPNSense drauf kommen. Diese Konfiguration ist durch die Skripte derzeit nicht abgedeckt.
 
